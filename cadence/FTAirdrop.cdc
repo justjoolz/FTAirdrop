@@ -147,7 +147,7 @@ pub contract Airdrop {
         //
         pub fun withdrawFunds() {
             let dropRef = &Airdrop.drops[self.id] as &Drop
-            assert(getCurrentBlock().timestamp < dropRef.endTime, message: "Drop has not ended yet!")
+            assert(getCurrentBlock().timestamp >= dropRef.endTime, message: "Drop has not ended yet!")
             let funds <- dropRef.vault.withdraw(amount: dropRef.vault.balance)
             dropRef.ftReceiverCap.borrow()?.deposit!(from: <- funds)
         }
