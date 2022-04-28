@@ -48,9 +48,24 @@ pub contract Airdrop {
         return <- dropController
     }
 
+    access(contract) fun cleanup(_ key: UInt64) {
+        destroy <- self.drops.remove(key: key)
+    }
+
+    // public function anyone can run to cleanup any expired drop resources 
+    pub fun cleanAll() {
+        let now = getCurrentBlock().timestamp
+        for key in self.drops.keys {
+            let drop = &self.drops[key] as &Drop
+            if drop.endTime <= now {
+                destroy <- self.drops.remove(key: key) // funds are returned in the resources destroy() function
+            }
+        }
+    }
+
     // Check Available Claims
     //
-    // Returns all drop IDs and required ftType for a given address  
+    // Returns all claimable drop IDs with the details of the available claim  
     //
     pub fun checkAvailableClaims(address: Address): {UInt64: ClaimDetails} {
         let claimDetails: {UInt64: ClaimDetails} = {} 
@@ -164,6 +179,7 @@ pub contract Airdrop {
             assert(getCurrentBlock().timestamp >= dropRef.endTime, message: "Drop has not ended yet!")
             let funds <- dropRef.vault.withdraw(amount: dropRef.vault.balance)
             dropRef.ftReceiverCap.borrow()?.deposit!(from: <- funds)
+            Airdrop.cleanup(self.id)
         }
 
         // deposit funds function
