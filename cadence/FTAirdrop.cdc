@@ -52,15 +52,25 @@ pub contract Airdrop {
     //
     // Returns all drop IDs and required ftType for a given address  
     //
-    pub fun checkAvailableClaims(address: Address): {UInt64: Type} {
-        let claimableDropIDs: {UInt64: Type} = {} 
+    pub fun checkAvailableClaims(address: Address): {UInt64: ClaimDetails} {
+        let claimDetails: {UInt64: ClaimDetails} = {} 
         for key in self.drops.keys {
             let dropRef = &self.drops[key] as &Drop
             if dropRef.availableToClaimByAddress.containsKey(address) {
-                claimableDropIDs.insert(key: key, dropRef.ftReceiverCap.getType())
+                claimDetails.insert(key: key, ClaimDetails(dropRef, address))
             }
         }
-        return claimableDropIDs
+        return claimDetails
+    }
+
+    pub struct ClaimDetails {
+        pub let ftType: Type 
+        pub let amount: UFix64
+
+        init(_ dropRef: &Drop, _ address: Address) {
+            self.ftType = dropRef.vault.getType()
+            self.amount = dropRef.availableToClaimByAddress[address]!
+        }
     }
 
     // Claim Drop Function 
@@ -90,6 +100,10 @@ pub contract Airdrop {
             let receiverRef = ftReceiverCap.borrow()
             receiverRef?.deposit(from: <- self.vault.withdraw(amount: amount))
             self.availableToClaimByAddress[ftReceiverCap.address] = self.availableToClaimByAddress[ftReceiverCap.address]! - amount
+            // remove address from list if fully claimed
+            if self.availableToClaimByAddress[ftReceiverCap.address] == 0.0 {
+                self.availableToClaimByAddress[ftReceiverCap.address] = nil
+            }
         }
 
         pub fun totalClaims(): UFix64 {
