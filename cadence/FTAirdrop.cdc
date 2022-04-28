@@ -85,9 +85,9 @@ pub contract Airdrop {
         access(contract) let availableToClaimByAddress: {Address: UFix64}
 
         pub fun claim(amount:UFix64, ftReceiverCap: Capability<&{FungibleToken.Receiver}>) {
-            let claimAddress = ftReceiverCap.address
             let receiverRef = ftReceiverCap.borrow()
             receiverRef?.deposit(from: <- self.vault.withdraw(amount: amount))
+            self.availableToClaimByAddress[ftReceiverCap.address] = self.availableToClaimByAddress[ftReceiverCap.address]! - amount
         }
 
         pub fun totalClaims(): UFix64 {
