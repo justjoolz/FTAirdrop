@@ -69,6 +69,8 @@ pub contract Airdrop {
     //
     pub fun claimDrop(dropID: UInt64, amount: UFix64, ftReceiverCap: Capability<&{FungibleToken.Receiver}>) {
         let dropRef = &self.drops[dropID] as &Drop
+        assert(dropRef.availableToClaimByAddress[ftReceiverCap.address] != nil, message: "No funds available to claim for the receiver address provided")
+        assert(amount <= dropRef.availableToClaimByAddress[ftReceiverCap.address]!, message: "Amount requested is greater than amount available to claim")
         dropRef.claim(amount: amount, ftReceiverCap: ftReceiverCap)
         emit DropClaimed(id: dropID, address: ftReceiverCap.address, amount: amount)
     }
@@ -133,7 +135,7 @@ pub contract Airdrop {
             var totalClaims = dropRef.totalClaims()
             for key in addresses.keys {
                 totalClaims = totalClaims + dropRef.availableToClaimByAddress[key]!
-                assert(totalClaims <= dropRef.vault.balance, message: "More claims than balance available!")
+                assert(totalClaims <= dropRef.vault.balance, message: "Total claims greater than balance available!")
                 dropRef.availableToClaimByAddress.insert(key: key, addresses[key]!)
             }
         }
